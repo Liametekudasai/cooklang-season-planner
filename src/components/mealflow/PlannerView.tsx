@@ -70,7 +70,7 @@ export function PlannerView({ onOpenRecipe }: Props) {
                     onClick={() =>
                       setMeals(
                         active
-                          ? meals.filter((m) => m !== meal) || []
+                          ? meals.filter((m) => m !== meal)
                           : MEAL_OPTIONS.filter((m) => m === meal || meals.includes(m)),
                       )
                     }
