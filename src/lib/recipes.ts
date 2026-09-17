@@ -22,8 +22,8 @@ export interface Recipe {
   parsed: ParsedRecipe;
   tags: string[];
   protein: ProteinTag;
-  /** months (1-12) in which every seasonal ingredient of this recipe is available */
-  seasonalIngredients: { name: string; months: number[] }[];
+  /** seasonal produce used by this recipe, with the months it is available */
+  seasonalIngredients: { name: string; key: string; months: number[] }[];
   origin: "folder" | "added";
 }
 
@@ -71,10 +71,10 @@ export function buildRecipe(
   const seen = new Set<string>();
   for (const name of names) {
     const entry = matchSeason(name);
-    if (!entry || entry.months.length === 12) continue;
+    if (!entry) continue;
     if (seen.has(entry.name)) continue;
     seen.add(entry.name);
-    seasonalIngredients.push({ name, months: entry.months });
+    seasonalIngredients.push({ name, key: entry.name, months: entry.months });
   }
 
   const tags = (parsed.metadata["tags"] ?? parsed.metadata["category"] ?? "")
@@ -96,15 +96,26 @@ export function buildRecipe(
   };
 }
 
+/** User edits to the built-in seasonal table: canonical produce name -> months. */
+export type SeasonOverrides = Record<string, number[]>;
+
 /** Ingredients in this recipe that are out of season for the given month (1-12). */
-export function outOfSeasonIngredients(recipe: Recipe, month: number): string[] {
+export function outOfSeasonIngredients(
+  recipe: Recipe,
+  month: number,
+  overrides: SeasonOverrides = {},
+): string[] {
   return recipe.seasonalIngredients
-    .filter((item) => !item.months.includes(month))
+    .filter((item) => !(overrides[item.key] ?? item.months).includes(month))
     .map((item) => item.name);
 }
 
-export function isInSeason(recipe: Recipe, month: number): boolean {
-  return outOfSeasonIngredients(recipe, month).length === 0;
+export function isInSeason(
+  recipe: Recipe,
+  month: number,
+  overrides: SeasonOverrides = {},
+): boolean {
+  return outOfSeasonIngredients(recipe, month, overrides).length === 0;
 }
 
 /** Recipes shipped in the project's /recipes folder (bundled at build time). */
