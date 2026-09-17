@@ -1,4 +1,9 @@
-import { isInSeason, outOfSeasonIngredients, type Recipe } from "./recipes";
+import {
+  isInSeason,
+  outOfSeasonIngredients,
+  type Recipe,
+  type SeasonOverrides,
+} from "./recipes";
 
 export const DAYS = [
   "Monday",
@@ -37,10 +42,15 @@ function shuffle<T>(items: T[]): T[] {
 /** Pick recipes for the week, favouring seasonal dishes and protein variety. */
 export function generatePlan(
   recipes: Recipe[],
-  options: { people: number; meals: MealSlot[]; month: number },
+  options: {
+    people: number;
+    meals: MealSlot[];
+    month: number;
+    overrides?: SeasonOverrides;
+  },
 ): MealPlan {
-  const { people, meals, month } = options;
-  const seasonal = recipes.filter((r) => isInSeason(r, month));
+  const { people, meals, month, overrides = {} } = options;
+  const seasonal = recipes.filter((r) => isInSeason(r, month, overrides));
   const pool = seasonal.length >= 3 ? seasonal : recipes;
 
   const entries: PlanEntry[] = [];
@@ -75,9 +85,12 @@ export function pickReplacement(
   plan: MealPlan,
   month: number,
   currentId: string,
+  overrides: SeasonOverrides = {},
 ): Recipe | null {
   const inPlan = new Set(plan.entries.map((e) => e.recipeId));
-  const seasonal = recipes.filter((r) => isInSeason(r, month) && r.id !== currentId);
+  const seasonal = recipes.filter(
+    (r) => isInSeason(r, month, overrides) && r.id !== currentId,
+  );
   const fresh = seasonal.filter((r) => !inPlan.has(r.id));
   const pool = fresh.length ? fresh : seasonal;
   if (!pool.length) return null;
@@ -94,6 +107,7 @@ export function planStatus(
   plan: MealPlan,
   recipes: Recipe[],
   month: number,
+  overrides: SeasonOverrides = {},
 ): SlotStatus[] {
   const byId = new Map(recipes.map((r) => [r.id, r]));
   return plan.entries.map((entry) => {
@@ -101,7 +115,7 @@ export function planStatus(
     return {
       entry,
       recipe,
-      outOfSeason: recipe ? outOfSeasonIngredients(recipe, month) : [],
+      outOfSeason: recipe ? outOfSeasonIngredients(recipe, month, overrides) : [],
     };
   });
 }
