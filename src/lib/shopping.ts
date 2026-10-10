@@ -1,5 +1,5 @@
 import { formatQuantity, type Quantity } from "./cooklang";
-import type { MealPlan } from "./planner";
+import { slotPeople, type MealPlan } from "./planner";
 import type { Recipe } from "./recipes";
 
 export type Aisle =
@@ -66,7 +66,9 @@ export function buildShoppingList(
   for (const entry of plan.entries) {
     const recipe = byId.get(entry.recipeId);
     if (!recipe) continue;
-    const factor = plan.people / (recipe.servings || 4);
+    const eaters = slotPeople(plan, entry);
+    if (eaters <= 0) continue;
+    const factor = eaters / (recipe.servings || 4);
 
     for (const ingredient of recipe.parsed.ingredients) {
       const name = ingredient.name.trim();

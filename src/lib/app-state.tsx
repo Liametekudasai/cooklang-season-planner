@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { getDesktopBridge } from "./desktop";
+import { setCustomSeasons, type SeasonEntry } from "@/data/seasonality";
 import {
   buildRecipe,
   loadBundledRecipes,
@@ -33,6 +34,16 @@ interface PersistedState {
   checked: string[];
   overrides: SeasonOverrides;
   addedRecipes: { fileName: string; source: string }[];
+  advanced: boolean;
+  savedMenus: SavedMenu[];
+  customSeasons: SeasonEntry[];
+}
+
+export interface SavedMenu {
+  id: string;
+  name: string;
+  savedAt: string;
+  plan: MealPlan;
 }
 
 const DEFAULT_STATE: PersistedState = {
@@ -42,6 +53,9 @@ const DEFAULT_STATE: PersistedState = {
   checked: [],
   overrides: {},
   addedRecipes: [],
+  advanced: false,
+  savedMenus: [],
+  customSeasons: [],
 };
 
 function readStorage(): PersistedState {
@@ -78,6 +92,16 @@ interface AppState {
   addRecipe: (fileName: string, source: string) => void;
   removeAddedRecipe: (id: string) => void;
   rescan: () => Promise<void>;
+  advanced: boolean;
+  setAdvanced: (on: boolean) => void;
+  setSlotPeople: (index: number, people: number) => void;
+  savedMenus: SavedMenu[];
+  saveMenu: (name: string) => void;
+  loadMenu: (id: string) => void;
+  deleteMenu: (id: string) => void;
+  customSeasons: SeasonEntry[];
+  addCustomSeason: (entry: SeasonEntry) => void;
+  removeCustomSeason: (name: string) => void;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -89,7 +113,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [recipesPath, setRecipesPath] = useState<string | null>(null);
   const month = new Date().getMonth() + 1;
 
-  const bundled = useMemo(() => loadBundledRecipes(), []);
+  const bundled = useMemo(() => {
+    setCustomSeasons(state.customSeasons);
+    return loadBundledRecipes();
+  }, [state.customSeasons]);
 
   const loadFolder = useCallback(async () => {
     const bridge = getDesktopBridge();
@@ -115,6 +142,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [state, ready]);
 
   const recipes = useMemo(() => {
+    setCustomSeasons(state.customSeasons);
     const map = new Map<string, Recipe>();
     for (const recipe of bundled) map.set(recipe.id, recipe);
     for (const recipe of folderRecipes) map.set(recipe.id, recipe);
@@ -123,7 +151,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       map.set(recipe.id, recipe);
     }
     return [...map.values()].sort((a, b) => a.title.localeCompare(b.title));
-  }, [bundled, folderRecipes, state.addedRecipes]);
+  }, [bundled, folderRecipes, state.addedRecipes, state.customSeasons]);
 
   const status = useMemo(
     () => (state.plan ? planStatus(state.plan, recipes, month, state.overrides) : []),
@@ -149,7 +177,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({
         ...prev,
         people,
-        plan: prev.plan ? { ...prev.plan, people } : prev.plan,
+        plan: prev.plan
+          ? {
+              ...prev.plan,
+              people,
+              entries: prev.advanced
+                ? prev.plan.entries
+                : prev.plan.entries.map(({ people: _p, ...entry }) => entry),
+            }
+          : prev.plan,
       })),
     setMeals: (meals) => update({ meals }),
     regenerate: () =>
@@ -221,6 +257,80 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         ),
       })),
     rescan: loadFolder,
+    advanced: state.advanced,
+    setAdvanced: (on) =>
+      setState((prev) => ({
+        ...prev,
+        advanced: on,
+        plan:
+          prev.plan && !on
+            ? { ...prev.plan, entries: prev.plan.entries.map(({ people: _p, ...e }) => e) }
+            : prev.plan,
+      })),
+    setSlotPeople: (index, people) =>
+      setState((prev) => {
+        if (!prev.plan) return prev;
+        const entries = prev.plan.entries.map((entry, i) =>
+          i === index ? { ...entry, people: Math.max(0, Math.min(20, people)) } : entry,
+        );
+        return { ...prev, plan: { ...prev.plan, entries } };
+      }),
+    savedMenus: state.savedMenus,
+    saveMenu: (name) =>
+      setState((prev) => {
+        if (!prev.plan) return prev;
+        const trimmed = name.trim() || "Untitled menu";
+        const others = prev.savedMenus.filter(
+          (m) => m.name.toLowerCase() !== trimmed.toLowerCase(),
+        );
+        return {
+          ...prev,
+          savedMenus: [
+            ...others,
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              name: trimmed,
+              savedAt: new Date().toISOString(),
+              plan: prev.plan,
+            },
+          ],
+        };
+      }),
+    loadMenu: (id) =>
+      setState((prev) => {
+        const menu = prev.savedMenus.find((m) => m.id === id);
+        if (!menu) return prev;
+        const advanced = menu.plan.entries.some((e) => e.people !== undefined);
+        return {
+          ...prev,
+          plan: menu.plan,
+          people: menu.plan.people,
+          meals: menu.plan.meals,
+          checked: [],
+          advanced: prev.advanced || advanced,
+        };
+      }),
+    deleteMenu: (id) =>
+      setState((prev) => ({ ...prev, savedMenus: prev.savedMenus.filter((m) => m.id !== id) })),
+    customSeasons: state.customSeasons,
+    addCustomSeason: (entry) =>
+      setState((prev) => ({
+        ...prev,
+        customSeasons: [
+          ...prev.customSeasons.filter((e) => e.name !== entry.name),
+          entry,
+        ],
+      })),
+    removeCustomSeason: (name) =>
+      setState((prev) => {
+        const overrides = { ...prev.overrides };
+        delete overrides[name];
+        return {
+          ...prev,
+          overrides,
+          customSeasons: prev.customSeasons.filter((e) => e.name !== name),
+        };
+      }),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

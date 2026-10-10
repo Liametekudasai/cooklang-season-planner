@@ -36,7 +36,12 @@ export function MealFlowApp({
 
 function Shell({ view, onNavigate }: { view: View; onNavigate: (view: View) => void }) {
   const { month, recipes, overrides, people } = useApp();
-  const [openRecipeId, setOpenRecipeId] = useState<string | null>(null);
+  const [openRecipeId, setOpenId] = useState<string | null>(null);
+  const [openPeople, setOpenPeople] = useState<number | null>(null);
+  const setOpenRecipeId = (id: string | null, forPeople?: number) => {
+    setOpenId(id);
+    setOpenPeople(forPeople ?? null);
+  };
   const openRecipe = recipes.find((recipe) => recipe.id === openRecipeId) ?? null;
 
   return (
@@ -71,17 +76,17 @@ function Shell({ view, onNavigate }: { view: View; onNavigate: (view: View) => v
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {view === "planner" && <PlannerView onOpenRecipe={setOpenRecipeId} />}
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        {view === "planner" && <PlannerView onOpenRecipe={(id, n) => setOpenRecipeId(id, n)} />}
         {view === "shopping" && <ShoppingView />}
-        {view === "recipes" && <RecipesView onOpenRecipe={setOpenRecipeId} />}
+        {view === "recipes" && <RecipesView onOpenRecipe={(id) => setOpenRecipeId(id)} />}
         {view === "guide" && <GuideView />}
       </main>
 
       {openRecipe && (
         <RecipeReader
           recipe={openRecipe}
-          people={people}
+          people={openPeople && openPeople > 0 ? openPeople : people}
           month={month}
           outOfSeason={outOfSeasonIngredients(openRecipe, month, overrides)}
           onClose={() => setOpenRecipeId(null)}
