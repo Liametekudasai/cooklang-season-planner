@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Check, Copy, Plus, Trash2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-state";
@@ -29,7 +29,7 @@ export function GuideView() {
   const customNames = new Set(customSeasons.map((e) => e.name));
   const allEntries = [...SEASONALITY, ...customSeasons];
 
-  const submitNew = (event: React.FormEvent) => {
+  const submitNew = (event: FormEvent) => {
     event.preventDefault();
     const name = normaliseIngredient(newName);
     if (!name) return setFormError("Enter an ingredient name.");
