@@ -136,9 +136,25 @@ function normalise(value: string): string {
 }
 
 const LOOKUP = new Map<string, SeasonEntry>();
-for (const entry of SEASONALITY) {
-  LOOKUP.set(entry.name, entry);
-  for (const alias of entry.aliases ?? []) LOOKUP.set(normalise(alias), entry);
+let CUSTOM: SeasonEntry[] = [];
+
+function rebuildLookup() {
+  LOOKUP.clear();
+  for (const entry of [...SEASONALITY, ...CUSTOM]) {
+    LOOKUP.set(normalise(entry.name), entry);
+    for (const alias of entry.aliases ?? []) LOOKUP.set(normalise(alias), entry);
+  }
+}
+rebuildLookup();
+
+/** Register user-added produce so recipes and shopping lists recognise it. */
+export function setCustomSeasons(entries: SeasonEntry[]) {
+  CUSTOM = entries;
+  rebuildLookup();
+}
+
+export function normaliseIngredient(value: string): string {
+  return normalise(value);
 }
 
 /** Find the seasonality entry for a free-text ingredient name, or null if year-round. */

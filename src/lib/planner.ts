@@ -21,6 +21,8 @@ export interface PlanEntry {
   day: string;
   meal: MealSlot;
   recipeId: string;
+  /** Advanced mode: headcount for this meal only (0 = nobody eating). */
+  people?: number;
 }
 
 export interface MealPlan {
@@ -95,6 +97,11 @@ export function pickReplacement(
   const pool = fresh.length ? fresh : seasonal;
   if (!pool.length) return null;
   return shuffle(pool)[0]!;
+}
+
+/** How many people eat this meal: per-slot value in advanced mode, else the plan default. */
+export function slotPeople(plan: MealPlan, entry: PlanEntry): number {
+  return entry.people ?? plan.people;
 }
 
 export interface SlotStatus {

@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { AlertTriangle, Dices, RefreshCw, Shuffle, Utensils } from "lucide-react";
+import { AlertTriangle, Dices, FolderOpen, RefreshCw, Save, Shuffle, Trash2, Users, Utensils } from "lucide-react";
 
 import { useApp } from "@/lib/app-state";
 import { MONTH_NAMES } from "@/data/seasonality";
-import { DAYS, type MealSlot } from "@/lib/planner";
+import { DAYS, slotPeople, type MealSlot } from "@/lib/planner";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  onOpenRecipe: (recipeId: string) => void;
+  onOpenRecipe: (recipeId: string, people?: number) => void;
 }
 
 const MEAL_OPTIONS: MealSlot[] = ["lunch", "dinner"];
@@ -25,8 +25,17 @@ export function PlannerView({ onOpenRecipe }: Props) {
     regenerate,
     swapSlot,
     rerollSlot,
+    advanced,
+    setAdvanced,
+    setSlotPeople,
+    savedMenus,
+    saveMenu,
+    loadMenu,
+    deleteMenu,
   } = useApp();
   const [swapping, setSwapping] = useState<number | null>(null);
+  const [menuName, setMenuName] = useState("");
+  const [savedNote, setSavedNote] = useState<string | null>(null);
 
   const outOfSeasonCount = status.filter((slot) => slot.outOfSeason.length > 0).length;
 
@@ -36,7 +45,7 @@ export function PlannerView({ onOpenRecipe }: Props) {
         <div className="flex flex-wrap items-end gap-6">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              People
+              {advanced ? "Default people" : "People"}
             </label>
             <div className="mt-2 flex items-center gap-2">
               <button
@@ -90,7 +99,26 @@ export function PlannerView({ onOpenRecipe }: Props) {
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Mode
+            </label>
+            <button
+              onClick={() => setAdvanced(!advanced)}
+              aria-pressed={advanced}
+              className={cn(
+                "mt-2 inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm transition-colors",
+                advanced
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border hover:bg-muted",
+              )}
+            >
+              <Users className="size-4" />
+              {advanced ? "Advanced: people per meal" : "Simple"}
+            </button>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
             <span className="text-sm text-muted-foreground">
               {MONTH_NAMES[month - 1]} · {recipes.length} recipes
             </span>
@@ -103,6 +131,83 @@ export function PlannerView({ onOpenRecipe }: Props) {
             </button>
           </div>
         </div>
+      </section>
+
+      {advanced && plan && (
+        <p className="text-sm text-muted-foreground">
+          Set how many people eat each meal with the − / + buttons on every dish. Set a meal to 0
+          to leave it off the shopping list.
+        </p>
+      )}
+
+      <section className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-[family-name:var(--font-display)] text-lg">Saved menus</h2>
+        <form
+          className="mt-3 flex flex-wrap gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!plan) return;
+            const name = menuName.trim() || "Untitled menu";
+            saveMenu(name);
+            setMenuName("");
+            setSavedNote(`Saved "${name}"`);
+            setTimeout(() => setSavedNote(null), 2500);
+          }}
+        >
+          <input
+            value={menuName}
+            onChange={(event) => setMenuName(event.target.value)}
+            placeholder={plan ? "Name this week's menu" : "Generate a week first"}
+            disabled={!plan}
+            maxLength={60}
+            className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={!plan}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            <Save className="size-4" />
+            Save menu
+          </button>
+        </form>
+        {savedNote && <p className="mt-2 text-xs text-muted-foreground">{savedNote}</p>}
+        {savedMenus.length > 0 ? (
+          <ul className="mt-4 divide-y divide-border">
+            {[...savedMenus].reverse().map((menu) => (
+              <li key={menu.id} className="flex flex-wrap items-center gap-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{menu.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(menu.savedAt).toLocaleDateString()} · {menu.plan.entries.length}{" "}
+                    meals
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (!plan || window.confirm(`Replace the current week with "${menu.name}"?`))
+                      loadMenu(menu.id);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs transition-colors hover:bg-muted"
+                >
+                  <FolderOpen className="size-3.5" />
+                  Use
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete "${menu.name}"?`)) deleteMenu(menu.id);
+                  }}
+                  aria-label={`Delete ${menu.name}`}
+                  className="inline-flex items-center rounded-md border border-border p-1.5 text-xs transition-colors hover:bg-muted"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">No saved menus yet.</p>
+        )}
       </section>
 
       {!plan && (
@@ -150,16 +255,47 @@ export function PlannerView({ onOpenRecipe }: Props) {
                         key={`${slot.entry.day}-${slot.entry.meal}`}
                         className={cn(
                           "rounded-lg border p-3 transition-colors",
+                          advanced && plan && slotPeople(plan, slot.entry) === 0 && "opacity-50",
                           flagged
                             ? "border-warning bg-warning/10"
                             : "border-border/70 bg-background",
                         )}
                       >
-                        <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground">
-                          {slot.entry.meal}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                            {slot.entry.meal}
+                          </p>
+                          {advanced && plan && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() =>
+                                  setSlotPeople(index, slotPeople(plan, slot.entry) - 1)
+                                }
+                                className="size-7 rounded border border-border text-sm hover:bg-muted"
+                                aria-label={`Fewer people for ${day} ${slot.entry.meal}`}
+                              >
+                                −
+                              </button>
+                              <span className="w-8 text-center text-sm font-semibold">
+                                {slotPeople(plan, slot.entry)}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setSlotPeople(index, slotPeople(plan, slot.entry) + 1)
+                                }
+                                className="size-7 rounded border border-border text-sm hover:bg-muted"
+                                aria-label={`More people for ${day} ${slot.entry.meal}`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <button
-                          onClick={() => slot.recipe && onOpenRecipe(slot.recipe.id)}
+                          onClick={() =>
+                            slot.recipe &&
+                            onOpenRecipe(slot.recipe.id, plan ? slotPeople(plan, slot.entry) : undefined)
+                          }
                           className="mt-1 text-left text-base font-medium text-foreground underline-offset-4 hover:underline"
                         >
                           {slot.recipe?.title ?? "Recipe missing"}
