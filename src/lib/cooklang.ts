@@ -69,15 +69,18 @@ function stripComments(source: string): string {
 
 const WORD_END = /[\s,.;:!?)\]]/;
 
-function readName(text: string, start: number): { name: string; next: number } {
-  // Braced name: @name{...} — name runs up to the "{"
+export function readName(text: string, start: number): { name: string; next: number } {
+  // Multi-word name: @olive oil{...} — name runs up to the "{" as long as no other
+  // marker or punctuation sits in between.
   const braceIndex = text.indexOf("{", start);
+  if (braceIndex !== -1) {
+    const candidate = text.slice(start, braceIndex);
+    if (candidate.trim() && !/[@#~{}.,;:!?()[\]]/.test(candidate) && !/^\s/.test(candidate)) {
+      return { name: candidate, next: braceIndex };
+    }
+  }
   let end = start;
   while (end < text.length && !WORD_END.test(text[end]!) && text[end] !== "{") end++;
-
-  if (braceIndex !== -1 && braceIndex === end) {
-    return { name: text.slice(start, braceIndex), next: braceIndex };
-  }
   return { name: text.slice(start, end), next: end };
 }
 
