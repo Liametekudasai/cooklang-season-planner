@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- The Android app is a Capacitor shell loading the hosted site (server.url), so server functions like the link import keep working; native file access goes through the bridge in src/lib/desktop.ts.
