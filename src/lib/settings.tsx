@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { DEFAULT_EMOJI_LIMIT, normalizeEmojiLimit } from "./recipe-emojis";
 
 export type Language = "en" | "fr";
 export type Theme = "light" | "dark" | "system";
@@ -12,6 +13,7 @@ const STRINGS = {
     seasons: "Seasons", settings: "Settings", maker: "Recipe maker",
     language: "Language", appearance: "Appearance", light: "Light", dark: "Dark", system: "System",
     settingsNote: "More settings coming soon.",
+    emojiLimit: "Maximum recipe emojis",
     recipesFolder: "Recipes folder", changeFolder: "Change folder",
     folderAppOnly: "Available in the Android and desktop apps.",
     seasonsTitle: "Seasonal calendar (Europe)",
@@ -39,6 +41,7 @@ const STRINGS = {
     seasons: "Saisons", settings: "Réglages", maker: "Créateur de recettes",
     language: "Langue", appearance: "Apparence", light: "Clair", dark: "Sombre", system: "Système",
     settingsNote: "D'autres réglages arrivent bientôt.",
+    emojiLimit: "Nombre maximal d’émojis par recette",
     recipesFolder: "Dossier des recettes", changeFolder: "Changer de dossier",
     folderAppOnly: "Disponible dans l'application Android et ordinateur.",
     seasonsTitle: "Calendrier des saisons (Europe)",
@@ -72,6 +75,8 @@ export const MONTHS: Record<Language, string[]> = {
 interface Settings {
   language: Language;
   theme: Theme;
+  emojiLimit: number;
+  setEmojiLimit: (limit: number) => void;
   setLanguage: (l: Language) => void;
   setTheme: (t: Theme) => void;
   t: (key: StringKey, vars?: Record<string, string>) => string;
@@ -83,6 +88,8 @@ const Ctx = createContext<Settings | null>(null);
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
   const [theme, setTheme] = useState<Theme>("system");
+  const [emojiLimit, updateEmojiLimit] = useState(DEFAULT_EMOJI_LIMIT);
+  const setEmojiLimit = (limit: number) => updateEmojiLimit(normalizeEmojiLimit(limit));
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -90,6 +97,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Settings>;
       if (saved.language === "en" || saved.language === "fr") setLanguage(saved.language);
       if (saved.theme === "light" || saved.theme === "dark" || saved.theme === "system") setTheme(saved.theme);
+      if (typeof saved.emojiLimit === "number") setEmojiLimit(saved.emojiLimit);
     } catch {
       /* ignore */
     }
@@ -97,9 +105,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (ready) localStorage.setItem(KEY, JSON.stringify({ language, theme }));
+    if (ready) localStorage.setItem(KEY, JSON.stringify({ language, theme, emojiLimit }));
     document.documentElement.lang = language;
-  }, [language, theme, ready]);
+  }, [language, theme, emojiLimit, ready]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -120,7 +128,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ language, theme, setLanguage, setTheme, t, months: MONTHS[language] }}>
+    <Ctx.Provider value={{ language, theme, setLanguage, setTheme, emojiLimit, setEmojiLimit, t, months: MONTHS[language] }}>
       {children}
     </Ctx.Provider>
   );
