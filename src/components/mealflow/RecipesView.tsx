@@ -6,12 +6,15 @@ import { getDesktopBridge } from "@/lib/desktop";
 import { outOfSeasonIngredients } from "@/lib/recipes";
 import { MONTH_NAMES } from "@/data/seasonality";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings";
+import { recipeEmojis } from "@/lib/recipe-emojis";
 
 interface Props {
   onOpenRecipe: (recipeId: string) => void;
 }
 
 export function RecipesView({ onOpenRecipe }: Props) {
+  const { emojiLimit } = useSettings();
   const { recipes, month, overrides, addRecipe, removeAddedRecipe, rescan, recipesPath } =
     useApp();
   const [query, setQuery] = useState("");
@@ -92,7 +95,10 @@ export function RecipesView({ onOpenRecipe }: Props) {
               )}
             >
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-[family-name:var(--font-display)] text-lg leading-snug">
+                <h3 className="min-w-0 break-words font-[family-name:var(--font-display)] text-lg leading-snug">
+                  {recipeEmojis(recipe, emojiLimit).length > 0 && (
+                    <span aria-hidden="true">{recipeEmojis(recipe, emojiLimit).join("")} </span>
+                  )}
                   {recipe.title}
                 </h3>
                 {recipe.origin === "added" && (

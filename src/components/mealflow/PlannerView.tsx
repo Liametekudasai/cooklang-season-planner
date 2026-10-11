@@ -5,6 +5,9 @@ import { useApp } from "@/lib/app-state";
 import { MONTH_NAMES } from "@/data/seasonality";
 import { DAYS, slotPeople, type MealSlot } from "@/lib/planner";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings";
+import { recipeEmojis } from "@/lib/recipe-emojis";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   onOpenRecipe: (recipeId: string, people?: number) => void;
@@ -13,6 +16,7 @@ interface Props {
 const MEAL_OPTIONS: MealSlot[] = ["lunch", "dinner"];
 
 export function PlannerView({ onOpenRecipe }: Props) {
+  const { emojiLimit } = useSettings();
   const {
     plan,
     status,
@@ -291,15 +295,19 @@ export function PlannerView({ onOpenRecipe }: Props) {
                             </div>
                           )}
                         </div>
-                        <button
+                        <Button
+                          variant="link"
                           onClick={() =>
                             slot.recipe &&
                             onOpenRecipe(slot.recipe.id, plan ? slotPeople(plan, slot.entry) : undefined)
                           }
-                          className="mt-1 text-left text-base font-medium text-foreground underline-offset-4 hover:underline"
+                          className="mt-1 block h-auto w-full whitespace-normal break-words p-0 text-left text-base font-medium text-foreground underline-offset-4 hover:underline"
                         >
+                          {slot.recipe && recipeEmojis(slot.recipe, emojiLimit).length > 0 && (
+                            <span aria-hidden="true">{recipeEmojis(slot.recipe, emojiLimit).join("")} </span>
+                          )}
                           {slot.recipe?.title ?? "Recipe missing"}
-                        </button>
+                        </Button>
                         {flagged && (
                           <p className="mt-1.5 text-xs text-foreground/80">
                             Out of season: {slot.outOfSeason.join(", ")}
@@ -335,7 +343,7 @@ export function PlannerView({ onOpenRecipe }: Props) {
                           >
                             {recipes.map((recipe) => (
                               <option key={recipe.id} value={recipe.id}>
-                                {recipe.title}
+                                {[recipeEmojis(recipe, emojiLimit).join(""), recipe.title].filter(Boolean).join(" ")}
                               </option>
                             ))}
                           </select>
