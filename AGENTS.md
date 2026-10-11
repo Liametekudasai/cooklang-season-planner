@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - The Android app is a Capacitor shell loading the hosted site (server.url), so server functions like the link import keep working; native file access goes through the bridge in src/lib/desktop.ts.
+- Ingredient emoji matching lives in a browser-safe helper separate from recipe classification, with its display limit persisted by SettingsProvider, so language-independent presentation never changes planning or seasonality rules.

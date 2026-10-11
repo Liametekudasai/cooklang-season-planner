@@ -4,6 +4,7 @@ import { FileText, FolderOpen, Leaf, Monitor, Moon, Settings, Sun } from "lucide
 import { useApp } from "@/lib/app-state";
 import { useSettings, type Language, type Theme } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { MAX_EMOJI_LIMIT } from "@/lib/recipe-emojis";
 import { RecipeMakerView } from "./RecipeMakerView";
 import { SeasonsView } from "./SeasonsView";
 
@@ -42,7 +43,7 @@ export function MoreView() {
 }
 
 function SettingsView() {
-  const { t, language, setLanguage, theme, setTheme } = useSettings();
+  const { t, language, setLanguage, theme, setTheme, emojiLimit, setEmojiLimit } = useSettings();
   const { canChooseFolder, chooseRecipesFolder, recipesPath } = useApp();
   const choice = (active: boolean) =>
     cn(
@@ -80,6 +81,21 @@ function SettingsView() {
             </button>
           ))}
         </div>
+      </div>
+      <div>
+        <label htmlFor="recipe-emoji-limit" className="block text-sm font-medium">{t("emojiLimit")}</label>
+        <input
+          id="recipe-emoji-limit"
+          type="number"
+          min={0}
+          max={MAX_EMOJI_LIMIT}
+          step={1}
+          value={emojiLimit}
+          onChange={(event) => {
+            if (event.target.value !== "") setEmojiLimit(event.target.valueAsNumber);
+          }}
+          className="mt-2 w-24 rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
       </div>
       <div>
         <h3 className="text-sm font-medium">{t("recipesFolder")}</h3>

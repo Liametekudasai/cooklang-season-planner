@@ -32,8 +32,8 @@ const FOODS: [string, string][] = [
   ["🥦", "broccoli|brocoli|brocolis"],
   ["🍆", "aubergine|aubergines|eggplant"],
   ["🥒", "cucumber|cucumbers|concombre|concombres|courgette|courgettes|zucchini"],
-  ["🥔", "potato|potatoes|pomme de terre|pommes de terre"],
   ["🍠", "sweet potato|sweet potatoes|patate douce|patates douces"],
+  ["🥔", "potato|potatoes|pomme de terre|pommes de terre"],
   ["🎃", "pumpkin|squash|butternut|potiron|potimarron|citrouille|courge|courges"],
   ["🍄", "mushroom|mushrooms|champignon|champignons|porcini|ceps|chanterelle|chanterelles|girolle|girolles"],
   ["🌽", "corn|sweetcorn|mais"], ["🫑", "pepper|peppers|poivron|poivrons"],
@@ -60,13 +60,8 @@ export function recipeEmojis(recipe: Pick<Recipe, "parsed">, limit = DEFAULT_EMO
   const maximum = normalizeEmojiLimit(limit);
   if (maximum === 0) return [];
   const names = recipe.parsed.ingredients.map(({ name }) => normalize(name));
-  const found = new Set<string>();
-  for (const { emoji, pattern } of MATCHERS) {
-    // Each ingredient contributes its most specific match only.
-    if (names.some((name) => MATCHERS.find((item) => item.pattern.test(name))?.emoji === emoji && pattern.test(name))) {
-      found.add(emoji);
-      if (found.size === maximum) break;
-    }
-  }
-  return [...found];
+  // Each ingredient contributes its most specific match only, then food groups
+  // are ordered consistently so proteins and bases precede supporting produce.
+  const found = new Set(names.map((name) => MATCHERS.find((item) => item.pattern.test(name))?.emoji));
+  return [...new Set(MATCHERS.filter(({ emoji }) => found.has(emoji)).map(({ emoji }) => emoji))].slice(0, maximum);
 }

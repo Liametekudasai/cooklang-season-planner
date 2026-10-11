@@ -21,7 +21,7 @@ describe("ingredient emoji display", () => {
   });
   it("uses distinct emojis and specific multiword names", () => {
     expect(recipeEmojis(dish("@sweet potatoes{2} @pommes de terre{3} @potatoes{1}"), 5))
-      .toEqual(["🥔", "🍠"]);
+      .toEqual(["🍠", "🥔"]);
   });
   it("does not invent an ingredient for unknown names", () => {
     expect(recipeEmojis(dish("@water{1} @salt{1}"))).toEqual([]);
