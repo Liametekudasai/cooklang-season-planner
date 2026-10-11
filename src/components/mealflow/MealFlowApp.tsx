@@ -1,23 +1,23 @@
 import { useState } from "react";
-import { BookOpen, CalendarDays, ChefHat, ShoppingBasket } from "lucide-react";
+import { CalendarDays, ChefHat, Ellipsis, ShoppingBasket } from "lucide-react";
 
 import { AppStateProvider, useApp } from "@/lib/app-state";
+import { SettingsProvider, useSettings, type StringKey } from "@/lib/settings";
 import { outOfSeasonIngredients } from "@/lib/recipes";
-import { MONTH_NAMES } from "@/data/seasonality";
 import { cn } from "@/lib/utils";
-import { GuideView } from "./GuideView";
+import { MoreView } from "./MoreView";
 import { PlannerView } from "./PlannerView";
 import { RecipeReader } from "./RecipeReader";
 import { RecipesView } from "./RecipesView";
 import { ShoppingView } from "./ShoppingView";
 
-export type View = "planner" | "recipes" | "shopping" | "guide";
+export type View = "planner" | "recipes" | "shopping" | "more";
 
-const NAV: { view: View; label: string; icon: typeof CalendarDays }[] = [
-  { view: "planner", label: "Week", icon: CalendarDays },
-  { view: "shopping", label: "Shopping", icon: ShoppingBasket },
-  { view: "recipes", label: "Recipes", icon: ChefHat },
-  { view: "guide", label: "Recipe format & seasons", icon: BookOpen },
+const NAV: { view: View; label: StringKey; icon: typeof CalendarDays }[] = [
+  { view: "planner", label: "week", icon: CalendarDays },
+  { view: "shopping", label: "shopping", icon: ShoppingBasket },
+  { view: "recipes", label: "recipes", icon: ChefHat },
+  { view: "more", label: "more", icon: Ellipsis },
 ];
 
 export function MealFlowApp({
@@ -28,14 +28,17 @@ export function MealFlowApp({
   onNavigate: (view: View) => void;
 }) {
   return (
-    <AppStateProvider>
-      <Shell view={view} onNavigate={onNavigate} />
-    </AppStateProvider>
+    <SettingsProvider>
+      <AppStateProvider>
+        <Shell view={view} onNavigate={onNavigate} />
+      </AppStateProvider>
+    </SettingsProvider>
   );
 }
 
 function Shell({ view, onNavigate }: { view: View; onNavigate: (view: View) => void }) {
   const { month, recipes, overrides, people } = useApp();
+  const { t, months } = useSettings();
   const [openRecipeId, setOpenId] = useState<string | null>(null);
   const [openPeople, setOpenPeople] = useState<number | null>(null);
   const setOpenRecipeId = (id: string | null, forPeople?: number) => {
@@ -53,7 +56,7 @@ function Shell({ view, onNavigate }: { view: View; onNavigate: (view: View) => v
               MealFlow
             </h1>
             <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
-              Seasonal weekly planner · {MONTH_NAMES[month - 1]}
+              {t("tagline")} · {months[month - 1]}
             </p>
           </div>
           <nav className="flex flex-wrap gap-1">
@@ -69,7 +72,7 @@ function Shell({ view, onNavigate }: { view: View; onNavigate: (view: View) => v
                 )}
               >
                 <item.icon className="size-4" />
-                {item.label}
+                {t(item.label)}
               </button>
             ))}
           </nav>
@@ -80,7 +83,7 @@ function Shell({ view, onNavigate }: { view: View; onNavigate: (view: View) => v
         {view === "planner" && <PlannerView onOpenRecipe={(id, n) => setOpenRecipeId(id, n)} />}
         {view === "shopping" && <ShoppingView />}
         {view === "recipes" && <RecipesView onOpenRecipe={(id) => setOpenRecipeId(id)} />}
-        {view === "guide" && <GuideView />}
+        {view === "more" && <MoreView />}
       </main>
 
       {openRecipe && (
