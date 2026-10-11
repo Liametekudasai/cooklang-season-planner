@@ -92,6 +92,8 @@ interface AppState {
   addRecipe: (fileName: string, source: string) => void;
   removeAddedRecipe: (id: string) => void;
   rescan: () => Promise<void>;
+  canChooseFolder: boolean;
+  chooseRecipesFolder: () => Promise<void>;
   advanced: boolean;
   setAdvanced: (on: boolean) => void;
   setSlotPeople: (index: number, people: number) => void;
@@ -257,6 +259,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         ),
       })),
     rescan: loadFolder,
+    canChooseFolder: Boolean(getDesktopBridge()?.chooseRecipesFolder),
+    chooseRecipesFolder: async () => {
+      const picked = await getDesktopBridge()?.chooseRecipesFolder?.();
+      if (picked) await loadFolder();
+    },
     advanced: state.advanced,
     setAdvanced: (on) =>
       setState((prev) => ({

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { FileText, Leaf, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { FileText, FolderOpen, Leaf, Monitor, Moon, Settings, Sun } from "lucide-react";
 
+import { useApp } from "@/lib/app-state";
 import { useSettings, type Language, type Theme } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { RecipeMakerView } from "./RecipeMakerView";
@@ -42,6 +43,7 @@ export function MoreView() {
 
 function SettingsView() {
   const { t, language, setLanguage, theme, setTheme } = useSettings();
+  const { canChooseFolder, chooseRecipesFolder, recipesPath } = useApp();
   const choice = (active: boolean) =>
     cn(
       "inline-flex items-center gap-2 rounded-md border px-3.5 py-2 text-sm transition-colors",
@@ -78,6 +80,20 @@ function SettingsView() {
             </button>
           ))}
         </div>
+      </div>
+      <div>
+        <h3 className="text-sm font-medium">{t("recipesFolder")}</h3>
+        <p className="mt-1 break-all text-xs text-muted-foreground">
+          {canChooseFolder ? (recipesPath ?? "—") : t("folderAppOnly")}
+        </p>
+        <button
+          onClick={() => void chooseRecipesFolder()}
+          disabled={!canChooseFolder}
+          className={cn(choice(false), "mt-2 disabled:opacity-50")}
+        >
+          <FolderOpen className="size-4" />
+          {t("changeFolder")}
+        </button>
       </div>
       <p className="text-xs text-muted-foreground">{t("settingsNote")}</p>
     </section>
