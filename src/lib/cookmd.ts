@@ -61,22 +61,22 @@ export function toMealFlowRecipe(source: string, url: string): ConvertedRecipe {
     .replace(/@\?/g, "@")
     .trim();
 
-  const title = meta.title || "Imported recipe";
-  const servings = Number.parseInt(meta.servings ?? meta.yield ?? "", 10);
-  const tags = [meta.course, meta.diet, meta.cuisine]
+  const title = meta["title"] || "Imported recipe";
+  const servings = Number.parseInt(meta["servings"] ?? meta["yield"] ?? "", 10);
+  const tags = [meta["course"], meta["diet"], meta["cuisine"]]
     .filter(Boolean)
     .join(", ")
     .split(",")
     .map((t) => t.trim().toLowerCase())
     .filter((t, i, all) => t && all.indexOf(t) === i);
-  const time = meta["time required"] || meta["total time"] || meta["cook time"] || meta.time;
+  const time = meta["time required"] || meta["total time"] || meta["cook time"] || meta["time"];
 
   const header = [
     `>> title: ${title}`,
     `>> servings: ${Number.isFinite(servings) && servings > 0 ? servings : 4}`,
     tags.length ? `>> tags: ${tags.join(", ")}` : null,
     time ? `>> time: ${time}` : null,
-    `>> source: ${meta.source || url}`,
+    `>> source: ${meta["source"] || url}`,
   ].filter(Boolean);
 
   return { title, fileName: `${slugify(title)}.cook`, content: `${header.join("\n")}\n\n${body}\n` };
